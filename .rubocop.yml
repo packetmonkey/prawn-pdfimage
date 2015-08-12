@@ -1,3 +1,4 @@
 Style/FileName:
   Exclude:
     - lib/prawn-pdfimage.rb
+    - spec/prawn-pdfimage_spec.rb

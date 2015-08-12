@@ -78,7 +78,13 @@ class PrawnPDFImage < Prawn::Images::Image
   # If images are not displaying correctly this is the first place to start
   # looking.
   def pdf_image_colorspace
-    pdf_image_stream.hash[:ColorSpace][1].hash[:Alternate]
+    cs = pdf_image_stream.hash[:ColorSpace]
+
+    if cs.is_a? Symbol
+      cs
+    else
+      return cs[1].hash[:Alternate]
+    end
   end
 
   def pdf_image_data
