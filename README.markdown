@@ -1,6 +1,6 @@
 # prawn-pdfimage
 
-Adds support for a [prawn][prawn](https://github.com/prawnpdf/prawn) to use
+Adds support for a [prawn](https://github.com/prawnpdf/prawn) to use
 a PDF that contains an image as an image.
 
 
