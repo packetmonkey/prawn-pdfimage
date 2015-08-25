@@ -27,10 +27,13 @@ class PrawnPDFImage < Prawn::Images::Image
 
   attr_accessor :image_blob, :reader, :document
 
+  def pdf
+    @pdf ||= PrawnPDFImage::PDF.new image_blob
+  end
+
   def prawn_image_reference
     document.ref!(prawn_image_reference_options).tap do |ref|
       ref << pdf_image_data
-      ref.stream.filters << { pdf_image_filter => nil }
       ref.data[:SMask] = prawn_soft_mask if pdf_soft_mask
     end
   end
@@ -42,14 +45,15 @@ class PrawnPDFImage < Prawn::Images::Image
       ColorSpace:       pdf_image_colorspace,
       Height:           pdf_image_height,
       Width:            pdf_image_width,
-      BitsPerComponent: pdf_image_bits_per_component
+      BitsPerComponent: pdf_image_bits_per_component,
+      Filter:           pdf_image_filter,
+      DecodeParms:      pdf_image_stream.hash[:DecodeParms]
     }
   end
 
   def prawn_soft_mask
     document.ref!(prawn_soft_mask_options).tap do |ref|
-      ref.stream << pdf_soft_mask.unfiltered_data
-      ref.stream.filters << { FlateDecode: nil }
+      ref.stream << pdf_soft_mask.data
     end
   end
 
@@ -60,7 +64,9 @@ class PrawnPDFImage < Prawn::Images::Image
       Width:            pdf_image_width,
       Height:           pdf_image_height,
       BitsPerComponent: pdf_image_bits_per_component,
-      ColorSpace:       :DeviceGray
+      ColorSpace:       :DeviceGray,
+      Filter:           pdf_soft_mask.hash[:Filter],
+      DecodeParms:      pdf_soft_mask.hash[:DecodeParms]
     }
   end
 
@@ -72,23 +78,21 @@ class PrawnPDFImage < Prawn::Images::Image
     pdf_image_stream.hash[:Filter]
   end
 
-  # In my tests all the PDF color spaces where contained in an ICCBased
-  # PDF reference to a dictionary with an Alternate key.
-  #
-  # If images are not displaying correctly this is the first place to start
-  # looking.
+  def pdf_image_data
+    pdf_image_stream.data
+  end
+
   def pdf_image_colorspace
     cs = pdf_image_stream.hash[:ColorSpace]
 
-    if cs.is_a? Symbol
-      cs
-    else
-      return cs[1].hash[:Alternate]
-    end
-  end
+    # Return if we are simply :DeviceRGB or DeviceCMYK
+    return cs if cs.is_a? Symbol
 
-  def pdf_image_data
-    pdf_image_stream.unfiltered_data
+    # We have an indexed ICCBased color profile, duplicate it.
+    return indexed_colorspace if cs[0] == :Indexed
+
+    # Hope this works as a fallback
+    cs[1].hash[:Alternate]
   end
 
   def pdf_image_bits_per_component
@@ -117,6 +121,48 @@ class PrawnPDFImage < Prawn::Images::Image
 
   alias_method :width, :pdf_image_width
   alias_method :height, :pdf_image_height
+
+  private
+
+  def indexed_colorspace
+    cs = pdf_image_stream.hash[:ColorSpace]
+
+    document.ref!(
+      [
+        cs[0],
+        indexed_colorspace_base,
+        cs[2],
+        indexed_colorspace_lookup
+      ]
+    )
+  end
+
+  def indexed_colorspace_base
+    orig_stream = pdf_image_stream.hash[:ColorSpace][1]
+
+    document.ref!(
+      [
+        orig_stream[0],
+        indexed_colorspace_base_stream
+      ]
+    )
+  end
+
+  def indexed_colorspace_base_stream
+    orig_stream = pdf_image_stream.hash[:ColorSpace][1][1]
+
+    document.ref!(orig_stream.hash).tap do |ref|
+      ref << orig_stream.data
+    end
+  end
+
+  def indexed_colorspace_lookup
+    orig_stream = pdf_image_stream.hash[:ColorSpace][3]
+
+    document.ref!(orig_stream.hash).tap do |ref|
+      ref << orig_stream.data
+    end
+  end
 end
 
 Prawn.image_handler.register PrawnPDFImage

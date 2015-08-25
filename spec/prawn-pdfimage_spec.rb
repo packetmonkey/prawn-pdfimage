@@ -12,7 +12,18 @@ RSpec.describe PrawnPDFImage do
         ColorSpace: :DeviceCMYK,
         Height: 50,
         Width: 50,
-        BitsPerComponent: 8
+        BitsPerComponent: 8,
+        Filter: :DCTDecode,
+        DecodeParms: {
+          Blend: 1,
+          ColorTransform: 1,
+          Colors: 4,
+          Columns: 50,
+          HSamples: [1, 1, 1, 1],
+          QFactor: 0.0,
+          Rows: 50,
+          VSamples: [1, 1, 1, 1]
+        }
       ).once.and_call_original
 
       expect(document).to receive(:ref!).with(
@@ -21,7 +32,14 @@ RSpec.describe PrawnPDFImage do
         Width: 50,
         Height: 50,
         BitsPerComponent: 8,
-        ColorSpace: :DeviceGray
+        ColorSpace: :DeviceGray,
+        Filter: :FlateDecode,
+        DecodeParms: {
+          BitsPerComponent: 8,
+          Colors: 1,
+          Columns: 50,
+          Predictor: 2
+        }
       ).once.and_call_original
 
       document.image file_path
@@ -38,7 +56,18 @@ RSpec.describe PrawnPDFImage do
         ColorSpace: :DeviceRGB,
         Height: 40,
         Width: 40,
-        BitsPerComponent: 8
+        BitsPerComponent: 8,
+        Filter: :DCTDecode,
+        DecodeParms: {
+          Blend: 1,
+          ColorTransform: 1,
+          Colors: 3,
+          Columns: 40,
+          HSamples: [1, 1, 1, 1],
+          QFactor: 0.0,
+          Rows: 40,
+          VSamples: [1, 1, 1, 1]
+        }
       ).exactly(1).times.and_call_original
 
       expect(document).to receive(:ref!).with(
@@ -47,7 +76,14 @@ RSpec.describe PrawnPDFImage do
         Width: 40,
         Height: 40,
         BitsPerComponent: 8,
-        ColorSpace: :DeviceGray
+        ColorSpace: :DeviceGray,
+        Filter: :FlateDecode,
+        DecodeParms: {
+          BitsPerComponent: 8,
+          Colors: 1,
+          Columns: 40,
+          Predictor: 2
+        }
       ).once.and_call_original
 
       document.image file_path
@@ -64,7 +100,18 @@ RSpec.describe PrawnPDFImage do
         ColorSpace: :DeviceRGB,
         Height: 16,
         Width: 16,
-        BitsPerComponent: 8
+        BitsPerComponent: 8,
+        Filter: :DCTDecode,
+        DecodeParms: {
+          Blend: 1,
+          ColorTransform: 1,
+          Colors: 3,
+          Columns: 16,
+          HSamples: [1, 1, 1, 1],
+          QFactor: 0.0,
+          Rows: 16,
+          VSamples: [1, 1, 1, 1]
+        }
       ).exactly(1).times.and_call_original
 
       document.image file_path
