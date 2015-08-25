@@ -1,4 +1,5 @@
 require 'pdf-reader'
+require_relative 'image'
 
 class PrawnPDFImage < Prawn::Images::Image
   # Abstracts out accessing values from our source PDF
@@ -7,40 +8,12 @@ class PrawnPDFImage < Prawn::Images::Image
       self.reader = ::PDF::Reader.new StringIO.new(pdf_blob)
     end
 
-    def image_filter
-      image_stream.hash[:Filter]
-    end
-
-    def image_height
-      image_stream.hash[:Height]
-    end
-
-    def image_width
-      image_stream.hash[:Width]
-    end
-
-    def image_bits_per_component
-      image_stream.hash[:BitsPerComponent]
-    end
-
-    def image_decode_parms
-      image_stream.hash[:DecodeParms]
-    end
-
-    def image_data
-      image_stream.data
-    end
-
-    def image_colorspace
-      image_stream.hash[:ColorSpace]
+    def image
+      Image.new page.xobjects.first[1]
     end
 
     def soft_mask
       image_stream.hash[:SMask]
-    end
-
-    def soft_mask?
-      image_stream.hash.key? :SMask
     end
 
     def indexed_colorspace_base

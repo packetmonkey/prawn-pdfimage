@@ -8,6 +8,13 @@ require_relative 'prawn-pdfimage/pdf'
 # we are adding to our document, prawn_* refers to the objects we are creating
 # to be added to our prawn document.
 class PrawnPDFImage < Prawn::Images::Image
+  extend Forwardable
+
+  # These methods are to conform to the API expected by Prawn Images and
+  # are not used internally.
+  attr_accessor :scaled_width, :scaled_height
+  def_delegators :image, :height, :width
+
   def self.can_render?(image_blob)
     image_blob.unpack('C5') == [37, 80, 68, 70, 45]
   end
@@ -26,14 +33,18 @@ class PrawnPDFImage < Prawn::Images::Image
 
   attr_accessor :image_blob, :document
 
+  def image
+    @image ||= pdf.image
+  end
+
   def pdf
     @pdf ||= PrawnPDFImage::PDF.new image_blob
   end
 
   def prawn_image_reference
     document.ref!(prawn_image_reference_options).tap do |ref|
-      ref << pdf.image_data
-      ref.data[:SMask] = prawn_soft_mask if pdf.soft_mask?
+      ref << image.data
+      ref.data[:SMask] = prawn_soft_mask if image.soft_mask?
     end
   end
 
@@ -42,11 +53,11 @@ class PrawnPDFImage < Prawn::Images::Image
       Type:             :XObject,
       Subtype:          :Image,
       ColorSpace:       pdf_image_colorspace,
-      Height:           pdf.image_height,
-      Width:            pdf.image_width,
-      BitsPerComponent: pdf.image_bits_per_component,
-      Filter:           pdf.image_filter,
-      DecodeParms:      pdf.image_decode_parms
+      Height:           image.height,
+      Width:            image.width,
+      BitsPerComponent: image.bits_per_component,
+      Filter:           image.filter,
+      DecodeParms:      image.decode_parms
     }
   end
 
@@ -60,17 +71,17 @@ class PrawnPDFImage < Prawn::Images::Image
     {
       Type:             :XObject,
       Subtype:          :Image,
-      Width:            pdf.image_width,
-      Height:           pdf.image_height,
-      BitsPerComponent: pdf.image_bits_per_component,
+      Width:            image.width,
+      Height:           image.height,
+      BitsPerComponent: image.bits_per_component,
       ColorSpace:       :DeviceGray,
-      Filter:           pdf.soft_mask.hash[:Filter],
-      DecodeParms:      pdf.soft_mask.hash[:DecodeParms]
+      Filter:           image.soft_mask_filter,
+      DecodeParms:      image.soft_mask_decode_parms
     }
   end
 
   def pdf_image_colorspace
-    cs = pdf.image_colorspace
+    cs = image.colorspace
 
     # Return if we are simply :DeviceRGB or DeviceCMYK
     return cs if cs.is_a? Symbol
@@ -82,22 +93,10 @@ class PrawnPDFImage < Prawn::Images::Image
     cs[1].hash[:Alternate]
   end
 
-  # These methods are to conform to the API expected by Prawn Images and
-  # are not used internally.
-  attr_accessor :scaled_width, :scaled_height
-
-  def height
-    pdf.image_height
-  end
-
-  def width
-    pdf.image_width
-  end
-
   private
 
   def indexed_colorspace
-    colorspace = pdf.image_colorspace
+    colorspace = image.colorspace
 
     document.ref!(
       [
